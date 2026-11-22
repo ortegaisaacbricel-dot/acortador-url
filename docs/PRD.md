@@ -1,4 +1,4 @@
-# PRD · <Nombre de tu producto>
+# PRD · Acortador URL
 
 > Documento de requisitos del producto (Product Requirements Document).
 > Complétalo en el Sprint 0 (historia H0.3) y pide la aprobación del profesor en un Issue.
@@ -6,54 +6,60 @@
 
 | Campo | Valor |
 | --- | --- |
-| Alumno | |
-| Proyecto n.º | |
-| Sitio de referencia | |
-| Compañero revisor | |
+| Alumno | Isaac Ortega |
+| Proyecto n.º | 36 |
+| Sitio de referencia | Bitly |
+| Compañero revisor | Vicente Castellón |
 | URL desplegada | (se completa en el Sprint 5) |
 
 ## 1. Problema
 
-¿Qué problema real resuelve y a quién le duele? (3 a 5 líneas)
+Los enlaces largos y complejos resultan difíciles de compartir en redes sociales, mensajes o material impreso, y no ofrecen visibilidad sobre cuántas personas los abren. Los usuarios necesitan una herramienta rápida para generar enlaces cortos confiables y medir el rendimiento de cada clic en tiempo real.
 
 ## 2. Usuarios
 
-- **Usuario principal:** quién es, qué necesita, desde qué dispositivo entra.
-- **Usuario secundario:**
+- **Usuario principal:** Creador de contenido / Emprendedor / Administrador. Crea, personaliza, organiza y analiza el tráfico de sus enlaces cortos desde PC o móvil.
+- **Usuario secundario:** Visitante final. Accede al enlace corto desde cualquier navegador (móvil o escritorio) y es redirigido instantáneamente a la URL original.
 
 ## 3. Objetivo y métrica de éxito
 
-Ejemplo: «Un bodeguero registra una venta en menos de 10 segundos».
+Un usuario genera un enlace corto codificado en Base62 en menos de 2 segundos y la redirección se ejecuta registrando el clic en menos de 100 ms.
 
 ## 4. Alcance del MVP
 
-Entre 5 y 8 funcionalidades que SÍ entran este semestre.
+1. Autenticación y control de roles (Administrador y Usuario estándar).
+2. Acortamiento de URLs mediante algoritmo propio de codificación/decodificación Base62.
+3. Redirección automática desde el código corto hacia la URL original.
+4. Personalización de alias, activación/desactivación y fecha de expiración de enlaces.
+5. Registro detallado de clics (fecha, hora, navegador/dispositivo y origen).
+6. Panel con gráficos interactivos de clics (Canvas/SVG) y exportación de reportes en CSV.
 
-1.
-2.
-3.
-
-### Funcionalidades → carpetas de `src/` (screaming architecture)
-
-Cada funcionalidad del alcance será una carpeta en `src/`. Nómbralas en inglés y en plural.
+### Funcionalidades → carpetas de `src/` (screaming architecture) 
 
 | Funcionalidad | Carpeta |
 | --- | --- |
-| Ejemplo: ventas | `src/sales` |
-| | |
+| Usuarios y autenticación | `src/users` |
+| Enlaces cortos y Base62 | `src/links` |
+| Registro y analítica de clics | `src/clicks` |
+| Etiquetas / campañas | `src/tags` |
+| Exportación e importación CSV | `src/reports` |
 
 ## 5. Fuera de alcance
 
-Lo que NO vas a construir.
-
--
+- Dominios personalizados con configuración DNS automática.
+- Integraciones pagadas con plataformas de anuncios (Meta Ads, Google Ads).
+- Acortamiento masivo mediante API pública para terceros con facturación.
 
 ## 6. Requisitos funcionales
 
 | ID | Requisito | Prioridad (alta, media, baja) |
 | --- | --- | --- |
-| RF-01 | | |
-| RF-02 | | |
+| RF-01 | Iniciar sesión y gestionar enlaces propios según el rol del usuario. | Alta |
+| RF-02 | Generar un código corto único usando codificación Base62 a partir de una URL válida. | Alta |
+| RF-03 | Redirigir automáticamente al visitar el enlace corto y registrar el evento de clic. | Alta |
+| RF-04 | Listar, buscar, editar, pausar o eliminar enlaces creados. | Media |
+| RF-05 | Visualizar estadísticas de clics por día y por enlace en un gráfico Canvas/SVG. | Alta |
+| RF-06 | Exportar el historial de enlaces y métricas de clics en formato CSV. | Media |
 
 ## 7. Requisitos no funcionales
 
@@ -62,32 +68,59 @@ Lo que NO vas a construir.
 - 0 errores en la consola del navegador.
 - Funciona con 10.000 registros sin congelarse.
 
-## 8. Modelo de datos
-
-Diagrama entidad-relación y tablas PostgreSQL con tipos, claves y restricciones.
-GitHub dibuja diagramas Mermaid; edita este ejemplo:
+## 8. Modelo de datos 
 
 ```mermaid
 erDiagram
-  CLIENTE ||--o{ PEDIDO : hace
-  PEDIDO ||--|{ LINEA_PEDIDO : contiene
-  PRODUCTO ||--o{ LINEA_PEDIDO : aparece_en
-  CLIENTE {
+  USERS ||--o{ LINKS : crea
+  LINKS ||--o{ CLICKS : recibe
+  TAGS ||--o{ LINK_TAGS : agrupa
+  LINKS ||--o{ LINK_TAGS : tiene
+
+  USERS {
     int id PK
-    text nombre
-    text telefono
+    text full_name
+    text email UK
+    text password_hash
+    text role
+    timestamptz created_at
   }
-  PEDIDO {
+  LINKS {
     int id PK
-    int cliente_id FK
-    timestamptz creado_en
+    int user_id FK
+    text original_url
+    text short_code UK
+    text title
+    boolean active
+    timestamptz expires_at
+    timestamptz created_at
+  }
+  CLICKS {
+    int id PK
+    int link_id FK
+    text user_agent
+    text referrer
+    timestamptz clicked_at
+  }
+  TAGS {
+    int id PK
+    int user_id FK
+    text name
+  }
+  LINK_TAGS {
+    int link_id FK
+    int tag_id FK
   }
 ```
 
 ## 9. Reto técnico distintivo
 
-El que te tocó en el catálogo y cómo piensas resolverlo.
+Implementar a mano el algoritmo de codificación y decodificación Base62 combinado con una tabla hash en memoria para resolver redirecciones en tiempo constante, junto con un panel gráfico en Canvas/SVG que muestre la evolución de clics por enlace y por fecha.
 
 ## 10. Riesgos y preguntas abiertas
 
--
+Riesgo: Colisiones de alias personalizados o URLs maliciosas (se mitigará validando el formato de URL y restringiendo alias reservados del sistema).
+
+Pregunta abierta: ¿Los enlaces creados sin iniciar sesión serán temporales o solo usuarios registrados podrán acortar URLs?
+
+
